@@ -17,6 +17,11 @@ CELL_COUNT_X :: 200
 CELL_COUNT_Y :: 200
 BRUSH_SIZE :: 10
 
+BRUSH_SHAPE :: enum {
+    SQUARE,
+    CIRCLE
+}
+
 main :: proc()
 {
     // Initialization
@@ -33,6 +38,7 @@ main :: proc()
 //    )
 
     brush_radius : f32 = BRUSH_SIZE
+    brush_shape : BRUSH_SHAPE = BRUSH_SHAPE.SQUARE
 
     rl.InitWindow(screen_width, screen_height, "raylib [core] example - basic window");
         
@@ -47,21 +53,38 @@ main :: proc()
         //----------------------------------------------------------------------------------
         rl.BeginDrawing()
         rl.ClearBackground(rl.BLACK)
+        
         mouse_pos := rl.GetMousePosition()
-        brush_radius += rl.GetMouseWheelMove()*5
-        brush_radius = math.clamp(brush_radius, 50, 300) //clamp brush radius to 1-200
-        rect := rl.Rectangle{mouse_pos.x - brush_radius/2, mouse_pos.y -brush_radius/2, brush_radius, brush_radius}
-        rl.DrawRectangleLinesEx(rect, 1, rl.GREEN)
+        
         if  rl.IsMouseButtonPressed(rl.MouseButton.LEFT){
             
             qt.insert(tree, mouse_pos)
         }
         qt.Draw(tree)
-        found := make([dynamic]rl.Vector2, 0,100)
-        qt.query(tree, rect, &found)
-        for point in found {
-            rl.DrawCircleV(point, 5, rl.RED)
+        if rl.IsKeyPressed(rl.KeyboardKey.SPACE){
+            //toggle brush shape
+            brush_shape = (brush_shape == BRUSH_SHAPE.SQUARE) ? BRUSH_SHAPE.CIRCLE : BRUSH_SHAPE.SQUARE
         }
+        brush_radius += rl.GetMouseWheelMove()*5
+        brush_radius = math.clamp(brush_radius, 50, 300) //clamp brush radius to 1-200
+        if brush_shape == BRUSH_SHAPE.CIRCLE {
+            rl.DrawCircleLinesV(mouse_pos, brush_radius/2, rl.GREEN)
+            found := make([dynamic]rl.Vector2, 0,100)
+            qt.query_circle(tree, mouse_pos, brush_radius/2, &found)
+            for point in found {
+                rl.DrawCircleV(point, 5, rl.RED)
+            }
+        }
+        else {
+            rect := rl.Rectangle{mouse_pos.x - brush_radius/2, mouse_pos.y -brush_radius/2, brush_radius, brush_radius}
+            rl.DrawRectangleLinesEx(rect, 1, rl.GREEN)
+            found := make([dynamic]rl.Vector2, 0,100)
+            qt.query(tree, rect, &found)
+            for point in found {
+                rl.DrawCircleV(point, 5, rl.RED)
+            }
+        }
+        
         rl.EndDrawing()
     }
 

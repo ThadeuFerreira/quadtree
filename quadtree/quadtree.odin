@@ -85,6 +85,28 @@ query :: proc(qt : ^Quadtree, range : rl.Rectangle, found : ^[dynamic]rl.Vector2
     return 
 }
 
+query_circle :: proc(qt : ^Quadtree, center : rl.Vector2, radius : f32, found : ^[dynamic]rl.Vector2) {
+    //CheckCollisionCircleRec(Vector2 center, float radius, Rectangle rec);                         // Check collision between circle and rectangle
+
+    if !rl.CheckCollisionCircleRec(center, radius, qt.bounds) {
+        return 
+    }
+
+    if qt.divided {
+        query_circle(qt.northWest, center, radius, found)
+        query_circle(qt.northEast, center, radius, found)
+        query_circle(qt.southWest, center, radius, found)
+        query_circle(qt.southEast, center, radius, found)
+        return 
+    }
+
+    for point in qt.points {
+        if rl.CheckCollisionPointCircle(point, center, radius) {
+            append(found, point)
+        }
+    }
+}
+
 subdivide :: proc(qt : ^Quadtree) {
     x := qt.bounds.x
     y := qt.bounds.y
