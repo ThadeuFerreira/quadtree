@@ -49,13 +49,13 @@ main :: proc()
         mouse_pos := rl.GetMousePosition()
         rect := rl.Rectangle{mouse_pos.x - BRUSH_SIZE/2, mouse_pos.y -BRUSH_SIZE/2, BRUSH_SIZE, BRUSH_SIZE}
         rl.DrawRectangleLinesEx(rect, 1, rl.GREEN)
-        if  rl.IsMouseButtonDown(rl.MouseButton.LEFT){
+        if  rl.IsMouseButtonPressed(rl.MouseButton.LEFT){
             
             qt.insert(tree, mouse_pos)
         }
         qt.Draw(tree)
         found := make([dynamic]rl.Vector2, 0,100)
-        found = qt.query(tree, rect, &found)
+        qt.query(tree, rect, &found)
         for point in found {
             rl.DrawCircleV(point, 5, rl.RED)
         }
