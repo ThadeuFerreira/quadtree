@@ -1,6 +1,7 @@
 package game
 
 import rl "vendor:raylib"
+import "core:math"
 import qt "/quadtree"
 
 
@@ -14,7 +15,7 @@ screen_height : i32 = 1000
 CELL_SIZE :: 5
 CELL_COUNT_X :: 200
 CELL_COUNT_Y :: 200
-BRUSH_SIZE :: 50
+BRUSH_SIZE :: 10
 
 main :: proc()
 {
@@ -31,7 +32,7 @@ main :: proc()
 //     rl.BLACK,
 //    )
 
-
+    brush_radius : f32 = BRUSH_SIZE
 
     rl.InitWindow(screen_width, screen_height, "raylib [core] example - basic window");
         
@@ -47,7 +48,9 @@ main :: proc()
         rl.BeginDrawing()
         rl.ClearBackground(rl.BLACK)
         mouse_pos := rl.GetMousePosition()
-        rect := rl.Rectangle{mouse_pos.x - BRUSH_SIZE/2, mouse_pos.y -BRUSH_SIZE/2, BRUSH_SIZE, BRUSH_SIZE}
+        brush_radius += rl.GetMouseWheelMove()*5
+        brush_radius = math.clamp(brush_radius, 50, 300) //clamp brush radius to 1-200
+        rect := rl.Rectangle{mouse_pos.x - brush_radius/2, mouse_pos.y -brush_radius/2, brush_radius, brush_radius}
         rl.DrawRectangleLinesEx(rect, 1, rl.GREEN)
         if  rl.IsMouseButtonPressed(rl.MouseButton.LEFT){
             
