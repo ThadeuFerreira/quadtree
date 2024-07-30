@@ -64,10 +64,10 @@ insert :: proc(qt : ^Quadtree, point : rl.Vector2) -> bool {
     return insert(qt.northWest, point) || insert(qt.northEast, point) || insert(qt.southWest, point) || insert(qt.southEast, point)
 }
 
-query :: proc(qt : ^Quadtree, range : rl.Rectangle, found : [dynamic]rl.Vector2) -> [dynamic]rl.Vector2 {
-    f := found
+query :: proc(qt : ^Quadtree, range : rl.Rectangle, found : ^[dynamic]rl.Vector2) -> [dynamic]rl.Vector2 {
+    f := found^
     if len(f) == 0 {
-        f = make([dynamic]rl.Vector2, 0, qt.capacity)
+        f = make([dynamic]rl.Vector2, 0, qt.capacity*10)
     }
 
     if !rl.CheckCollisionRecs(qt.bounds, range) {
@@ -75,10 +75,10 @@ query :: proc(qt : ^Quadtree, range : rl.Rectangle, found : [dynamic]rl.Vector2)
     }
 
     if qt.divided {
-        f = query(qt.northWest, range, f)
-        f = query(qt.northEast, range, f)
-        f = query(qt.southWest, range, f)
-        f = query(qt.southEast, range, f)
+        f = query(qt.northWest, range, &f)
+        f = query(qt.northEast, range, &f)
+        f = query(qt.southWest, range, &f)
+        f = query(qt.southEast, range, &f)
         return f
     } 
 
