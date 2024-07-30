@@ -1,0 +1,145 @@
+package quadtree
+
+import rl "vendor:raylib"
+
+DEFAULT_CAPACITY :: 8
+MAX_DEPTH :: 8
+
+Quadtree :: struct {
+    bounds : rl.Rectangle,
+    capacity: int,
+    points: [dynamic]rl.Vector2,
+    divided: bool,
+    depth: int,
+    northWest: ^Quadtree,
+    northEast: ^Quadtree,
+    southWest: ^Quadtree,
+    southEast: ^Quadtree,
+}
+
+  // Basic shapes collision detection functions
+//   bool CheckCollisionRecs(Rectangle rec1, Rectangle rec2);                                           // Check collision between two rectangles
+//   bool CheckCollisionCircles(Vector2 center1, float radius1, Vector2 center2, float radius2);        // Check collision between two circles
+//   bool CheckCollisionCircleRec(Vector2 center, float radius, Rectangle rec);                         // Check collision between circle and rectangle
+//   bool CheckCollisionPointRec(Vector2 point, Rectangle rec);                                         // Check if point is inside rectangle
+//   bool CheckCollisionPointCircle(Vector2 point, Vector2 center, float radius);                       // Check if point is inside circle
+//   bool CheckCollisionPointTriangle(Vector2 point, Vector2 p1, Vector2 p2, Vector2 p3);               // Check if point is inside a triangle
+//   bool CheckCollisionPointPoly(Vector2 point, Vector2 *points, int pointCount);                      // Check if point is within a polygon described by array of vertices
+//   bool CheckCollisionLines(Vector2 startPos1, Vector2 endPos1, Vector2 startPos2, Vector2 endPos2, Vector2 *collisionPoint); // Check the collision between two lines defined by two points each, returns collision point by reference
+//   bool CheckCollisionPointLine(Vector2 point, Vector2 p1, Vector2 p2, int threshold);                // Check if point belongs to line created between two points [p1] and [p2] with defined margin in pixels [threshold]
+//   Rectangle GetCollisionRec(Rectangle rec1, Rectangle rec2);                                         // Get collision rectangle for two rectangles collision
+
+Make_quadtree :: proc(bounds: rl.Rectangle, capacity: int = DEFAULT_CAPACITY, depth: int = 0) -> ^Quadtree {
+
+    qt := new(Quadtree)
+    qt.bounds = bounds
+    qt.capacity = capacity
+    qt.points = make([dynamic]rl.Vector2, 0, capacity)
+    qt.divided = false
+    qt.depth = depth
+
+    return qt
+}
+
+get_children :: proc(qt : ^Quadtree) -> [4]^Quadtree {
+    if qt.divided {
+        return [4]^Quadtree{qt.northWest, qt.northEast, qt.southWest, qt.southEast}
+    }
+    return [4]^Quadtree{nil, nil, nil, nil}
+}
+
+insert :: proc(qt : ^Quadtree, point : rl.Vector2) -> bool {
+    if !rl.CheckCollisionPointRec(point, qt.bounds) {
+        return false
+    }
+
+    if !qt.divided{
+        if len(qt.points) < qt.capacity || qt.depth >= MAX_DEPTH {
+            append(&qt.points, point)
+            return true
+        }
+        subdivide(qt)
+    }
+
+    return insert(qt.northWest, point) || insert(qt.northEast, point) || insert(qt.southWest, point) || insert(qt.southEast, point)
+}
+
+query :: proc(qt : ^Quadtree, range : rl.Rectangle, found : [dynamic]rl.Vector2) -> [dynamic]rl.Vector2 {
+    f := found
+    if len(f) == 0 {
+        f = make([dynamic]rl.Vector2, 0, qt.capacity)
+    }
+
+    if !rl.CheckCollisionRecs(qt.bounds, range) {
+        return f
+    }
+
+    if qt.divided {
+        f = query(qt.northWest, range, f)
+        f = query(qt.northEast, range, f)
+        f = query(qt.southWest, range, f)
+        f = query(qt.southEast, range, f)
+        return f
+    } 
+
+    for point in qt.points {
+        if rl.CheckCollisionPointRec(point, range) {
+            append(&f, point)
+        }
+    }
+
+    return f
+}
+
+subdivide :: proc(qt : ^Quadtree) {
+    x := qt.bounds.x
+    y := qt.bounds.y
+    w := qt.bounds.width / 2
+    h := qt.bounds.height / 2
+
+    qt.northWest = Make_quadtree(rl.Rectangle{x, y, w, h}, qt.capacity, qt.depth + 1)
+    qt.northEast = Make_quadtree(rl.Rectangle{x + w, y, w, h}, qt.capacity, qt.depth + 1)
+    qt.southWest = Make_quadtree(rl.Rectangle{x, y + h, w, h}, qt.capacity, qt.depth + 1)
+    qt.southEast = Make_quadtree(rl.Rectangle{x + w, y + h, w, h}, qt.capacity, qt.depth + 1)
+    qt.divided = true
+
+    inserted := false
+
+    for point in qt.points {
+        inserted = insert(qt.northEast, point) || insert(qt.northWest, point) || insert(qt.southEast, point) || insert(qt.southWest, point)
+        if !inserted {
+            rl.TraceLog(rl.TraceLogLevel.INFO, "Failed to insert point into children")
+        }
+    }
+    delete(qt.points)
+}
+
+Draw :: proc(qt : ^Quadtree) {
+    if qt.divided {
+        Draw(qt.northWest)
+        Draw(qt.northEast)
+        Draw(qt.southWest)
+        Draw(qt.southEast)
+    } else {
+        rl.DrawRectangleLinesEx(qt.bounds, 1, rl.WHITE)
+    }
+    for point in qt.points {
+        rl.DrawCircleV(point, 2, rl.WHITE)
+    }
+}
+
+clear_quadtree :: proc(qt : ^Quadtree) {
+    if !qt.divided {
+        return
+    }
+    clear_quadtree(qt.northWest)
+    clear_quadtree(qt.northEast)
+    clear_quadtree(qt.southWest)
+    clear_quadtree(qt.southEast)
+    qt.divided = false
+    delete(qt.points)
+    free(qt.northWest)
+    free(qt.northEast)
+    free(qt.southWest)
+    free(qt.southEast)
+}
