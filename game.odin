@@ -90,11 +90,12 @@ main :: proc()
             }
             if rl.IsMouseButtonPressed(rl.MouseButton.RIGHT){
                 for p in found {
-                    qt.delete_point(tree, p)
+                    qt.delete_point(tree, p) 
                 }
             }
         }
         qt.Draw(tree)
+       
         rl.EndDrawing()
     }
 

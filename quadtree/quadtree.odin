@@ -54,8 +54,6 @@ insert :: proc(qt : ^Quadtree, point : rl.Vector2) -> bool {
         return false
     }
 
-    qt.total_points += 1
-
     if !qt.divided{
         if len(qt.points) < qt.capacity || qt.depth >= MAX_DEPTH {
             append(&qt.points, point)
@@ -64,7 +62,11 @@ insert :: proc(qt : ^Quadtree, point : rl.Vector2) -> bool {
         subdivide(qt)
     }
 
-    return insert(qt.northWest, point) || insert(qt.northEast, point) || insert(qt.southWest, point) || insert(qt.southEast, point)
+    if insert(qt.northWest, point) || insert(qt.northEast, point) || insert(qt.southWest, point) || insert(qt.southEast, point){
+        qt.total_points += 1
+        return true
+    }
+    return false
 }
 
 delete_point :: proc(qt : ^Quadtree, point : rl.Vector2) -> bool {
@@ -73,12 +75,17 @@ delete_point :: proc(qt : ^Quadtree, point : rl.Vector2) -> bool {
     }
 
     if qt.divided {
-        return delete_point(qt.northWest, point) || delete_point(qt.northEast, point) || delete_point(qt.southWest, point) || delete_point(qt.southEast, point)
+        if delete_point(qt.northWest, point) || delete_point(qt.northEast, point) || delete_point(qt.southWest, point) || delete_point(qt.southEast, point){
+            rebalance(qt)
+            qt.total_points -= 1
+            return true
+        }
     }
 
     for i in 0..< len(qt.points) {
         if qt.points[i] == point {
             ordered_remove(&qt.points, i)
+            qt.total_points -= 1
             return true
         }
     }
@@ -124,6 +131,27 @@ query_circle :: proc(qt : ^Quadtree, center : rl.Vector2, radius : f32, found : 
     for point in qt.points {
         if rl.CheckCollisionPointCircle(point, center, radius) {
             append(found, point)
+        }
+    }
+}
+
+rebalance :: proc(qt : ^Quadtree) {
+    children := get_children(qt)
+    children_points := 0
+    for child in children {
+        if child != nil {
+            children_points += child.total_points
+        }
+    }
+    if len(qt.points) + children_points <= qt.capacity {
+        qt.divided = false
+        for child in children {
+            if child != nil {
+                for point in child.points {
+                    insert(qt, point)
+                }
+                clear_quadtree(child)
+            }
         }
     }
 }
