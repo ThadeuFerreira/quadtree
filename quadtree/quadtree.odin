@@ -11,6 +11,7 @@ Quadtree :: struct {
     points: [dynamic]rl.Vector2,
     divided: bool,
     depth: int,
+    total_points: int,
     northWest: ^Quadtree,
     northEast: ^Quadtree,
     southWest: ^Quadtree,
@@ -53,6 +54,8 @@ insert :: proc(qt : ^Quadtree, point : rl.Vector2) -> bool {
         return false
     }
 
+    qt.total_points += 1
+
     if !qt.divided{
         if len(qt.points) < qt.capacity || qt.depth >= MAX_DEPTH {
             append(&qt.points, point)
@@ -62,6 +65,24 @@ insert :: proc(qt : ^Quadtree, point : rl.Vector2) -> bool {
     }
 
     return insert(qt.northWest, point) || insert(qt.northEast, point) || insert(qt.southWest, point) || insert(qt.southEast, point)
+}
+
+delete_point :: proc(qt : ^Quadtree, point : rl.Vector2) -> bool {
+    if !rl.CheckCollisionPointRec(point, qt.bounds) {
+        return false
+    }
+
+    if qt.divided {
+        return delete_point(qt.northWest, point) || delete_point(qt.northEast, point) || delete_point(qt.southWest, point) || delete_point(qt.southEast, point)
+    }
+
+    for i in 0..< len(qt.points) {
+        if qt.points[i] == point {
+            ordered_remove(&qt.points, i)
+            return true
+        }
+    }
+    return false
 }
 
 query :: proc(qt : ^Quadtree, range : rl.Rectangle, found : ^[dynamic]rl.Vector2)  {
@@ -124,10 +145,12 @@ subdivide :: proc(qt : ^Quadtree) {
     for point in qt.points {
         inserted = insert(qt.northEast, point) || insert(qt.northWest, point) || insert(qt.southEast, point) || insert(qt.southWest, point)
         if !inserted {
-            rl.TraceLog(rl.TraceLogLevel.INFO, "Failed to insert point into children")
+            rl.TraceLog(rl.TraceLogLevel.TRACE, "Failed to insert point into children")
         }
     }
     delete(qt.points)
+    qt.points = nil
+    rl.TraceLog(rl.TraceLogLevel.TRACE, "Subdivided quadtree at depth %d", qt.depth)
 }
 
 Draw :: proc(qt : ^Quadtree) {

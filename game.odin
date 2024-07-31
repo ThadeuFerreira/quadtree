@@ -60,7 +60,7 @@ main :: proc()
             
             qt.insert(tree, mouse_pos)
         }
-        qt.Draw(tree)
+        
         if rl.IsKeyPressed(rl.KeyboardKey.SPACE){
             //toggle brush shape
             brush_shape = (brush_shape == BRUSH_SHAPE.SQUARE) ? BRUSH_SHAPE.CIRCLE : BRUSH_SHAPE.SQUARE
@@ -74,6 +74,11 @@ main :: proc()
             for point in found {
                 rl.DrawCircleV(point, 5, rl.RED)
             }
+            if rl.IsMouseButtonPressed(rl.MouseButton.RIGHT){
+                for p in found {
+                    qt.delete_point(tree, p)
+                }
+            }
         }
         else {
             rect := rl.Rectangle{mouse_pos.x - brush_radius/2, mouse_pos.y -brush_radius/2, brush_radius, brush_radius}
@@ -83,8 +88,13 @@ main :: proc()
             for point in found {
                 rl.DrawCircleV(point, 5, rl.RED)
             }
+            if rl.IsMouseButtonPressed(rl.MouseButton.RIGHT){
+                for p in found {
+                    qt.delete_point(tree, p)
+                }
+            }
         }
-        
+        qt.Draw(tree)
         rl.EndDrawing()
     }
 
